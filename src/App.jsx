@@ -1049,23 +1049,15 @@ export default function App() {
 
   return (
     <div className="flex h-screen overflow-hidden w-full">
-      <aside
-        className={
-          isCompactShell
-            ? "w-64 bg-[#143d34] text-[#e8e6e1] border-r border-[#1f4f44] flex-col justify-between hidden md:flex relative z-20 shadow-xl flex-shrink-0"
-            : "w-64 bg-[#143d34] text-[#e8e6e1] border-r border-[#1f4f44] flex-col justify-between hidden md:flex relative z-20 shadow-xl"
-        }
-      >
-        <div className={isCompactShell ? "p-6 pb-2" : "p-8 pb-4"}>
-          <div className={isCompactShell ? "mb-1" : "mb-2"}>
-            <h1 className={isCompactShell ? "text-xl font-medium tracking-wide serif-font text-[#f0ebe0]" : "text-2xl font-medium tracking-wide serif-font text-[#f0ebe0]"}>
-              Ramadan Desk
-            </h1>
+      <aside className="w-64 bg-[#143d34] text-[#e8e6e1] border-r border-[#1f4f44] flex-col justify-between hidden md:flex relative z-20 shadow-xl flex-shrink-0">
+        <div className="p-6 pb-2">
+          <div className="mb-1">
+            <h1 className="text-xl font-medium tracking-wide serif-font text-[#f0ebe0]">Ramadan Desk</h1>
           </div>
           <p className="text-xs text-[#a0b5b0] font-light pl-1 opacity-70 tracking-wide font-sans">Focus, Prayer, Peace</p>
         </div>
 
-        <nav className={isCompactShell ? "flex-1 px-3 py-4 space-y-1 overflow-y-auto" : "flex-1 px-4 py-6 space-y-1.5 overflow-y-auto"}>
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {NAV_ITEMS.map((item) => (
             <a
               key={item.id}
@@ -1076,24 +1068,16 @@ export default function App() {
               }}
               className={
                 item.id === activeSection
-                  ? isCompactShell
-                    ? "flex items-center gap-3 px-3 py-2.5 bg-[#1e4d42] text-[#d4af37] border border-[#265c50] rounded-lg shadow-sm group transition-all"
-                    : "flex items-center gap-3 px-4 py-3 bg-[#1e4d42] text-[#d4af37] border border-[#265c50] rounded-xl shadow-sm group transition-all"
-                  : isCompactShell
-                    ? "flex items-center gap-3 px-3 py-2.5 text-[#b0c4c0] hover:text-[#f0ebe0] hover:bg-[#1e4d42]/50 rounded-lg transition-colors"
-                    : "flex items-center gap-3 px-4 py-3 text-[#b0c4c0] hover:text-[#f0ebe0] hover:bg-[#1e4d42]/50 rounded-xl transition-colors"
+                  ? "flex items-center gap-3 px-3 py-2.5 bg-[#1e4d42] text-[#d4af37] border border-[#265c50] rounded-lg shadow-sm group transition-all"
+                  : "flex items-center gap-3 px-3 py-2.5 text-[#b0c4c0] hover:text-[#f0ebe0] hover:bg-[#1e4d42]/50 rounded-lg transition-colors"
               }
             >
-              <iconify-icon icon={item.icon} width={isCompactShell ? "18" : "20"} stroke-width="1.5" />
+              <iconify-icon icon={item.icon} width="18" stroke-width="1.5" />
               <span
                 className={
                   item.id === activeSection
-                    ? isCompactShell
-                      ? `text-xs font-medium${item.id === "quran" ? " tracking-wide" : ""}`
-                      : "text-sm font-medium tracking-wide"
-                    : isCompactShell
-                      ? `text-xs font-medium${item.id === "quran" ? " tracking-wide" : ""}`
-                      : "text-sm font-medium"
+                    ? `text-xs font-medium${item.id === "quran" ? " tracking-wide" : ""}`
+                    : `text-xs font-medium${item.id === "quran" ? " tracking-wide" : ""}`
                 }
               >
                 {item.label}
@@ -1102,20 +1086,18 @@ export default function App() {
           ))}
         </nav>
 
-        <div className={isCompactShell ? "p-5 border-t border-[#1f4f44] bg-[#11352d]" : "p-6 border-t border-[#1f4f44] bg-[#11352d]"}>
-          <div className={isCompactShell ? "flex items-center gap-2 mb-1.5 text-[#8aa39e]" : "flex items-center gap-2 mb-2 text-[#8aa39e]"}>
-            <iconify-icon icon="solar:map-point-linear" width={isCompactShell ? "12" : "14"} />
-            <span className={isCompactShell ? "text-[10px] font-medium uppercase tracking-widest" : "text-xs font-medium uppercase tracking-widest"}>
+        <div className="p-5 border-t border-[#1f4f44] bg-[#11352d]">
+          <div className="flex items-center gap-2 mb-1.5 text-[#8aa39e]">
+            <iconify-icon icon="solar:map-point-linear" width="12" />
+            <span className="text-[10px] font-medium uppercase tracking-widest">
               {state.settings.location.name.toUpperCase()}
             </span>
           </div>
-          <div className={isCompactShell ? "space-y-0.5" : "space-y-1"}>
-            <p className={isCompactShell ? "text-[10px] text-[#a0b5b0] opacity-80" : "text-xs text-[#a0b5b0] opacity-80"}>
+          <div className="space-y-0.5">
+            <p className="text-[10px] text-[#a0b5b0] opacity-80">
               {nextEventClock && nextEventLabel ? `Next: ${nextEventLabel} ${nextEventClock}` : "Prayer schedule unavailable"}
             </p>
-            <p className={isCompactShell ? "text-xs serif-font text-[#d4af37] italic tracking-wide" : "text-sm serif-font text-[#d4af37] italic tracking-wide"}>
-              {countdownText}
-            </p>
+            <p className="text-xs serif-font text-[#d4af37] italic tracking-wide">{countdownText}</p>
           </div>
         </div>
       </aside>
