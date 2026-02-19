@@ -1,6 +1,6 @@
 {
   "name": "saif",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Ramadan desk companion built with React and Electron",
   "main": "electron/main.js",
   "author": "JulianHua1",
