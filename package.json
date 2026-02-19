@@ -1,0 +1,41 @@
+{
+  "name": "saif",
+  "version": "0.1.0",
+  "description": "Ramadan desk companion built with React and Electron",
+  "main": "electron/main.js",
+  "author": "JulianHua1",
+  "license": "MIT",
+  "scripts": {
+    "dev": "concurrently -k \"vite\" \"wait-on tcp:5273 && electron .\"",
+    "start": "npm run dev",
+    "build:web": "vite build",
+    "build:desktop": "npm run build:web && electron-builder",
+    "preview": "vite preview"
+  },
+  "build": {
+    "appId": "com.julianhua.saif",
+    "productName": "Saif Ramadan Companion",
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "target": [
+        "dmg"
+      ]
+    }
+  },
+  "dependencies": {
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.2.1",
+    "electron": "^40.5.0",
+    "electron-builder": "^24.13.3",
+    "vite": "^5.4.14",
+    "wait-on": "^7.2.0"
+  }
+}
