@@ -105,7 +105,7 @@ export function SettingsView({
               <span>S</span>
             </div>
             <div>
-              <div className="text-sm font-semibold text-[#143d34]">Saif Al-Islam</div>
+              <div className="text-sm font-semibold text-[#143d34]">Saif Ullah</div>
               <div className="text-xs text-stone-500">Free Plan</div>
             </div>
           </div>
