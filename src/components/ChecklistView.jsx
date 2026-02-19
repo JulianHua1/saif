@@ -1,68 +1,45 @@
 import { useState } from "react";
 
-const CATEGORIES = [
-  { key: "daily", label: "Daily Checklist" },
-  { key: "weekly", label: "Weekly Checklist" }
-];
+export function ChecklistView({ title, description, items, onToggleItem, onDeleteItem, onAddItem }) {
+  const [draft, setDraft] = useState("");
 
-export function ChecklistView({ checklists, onToggleItem, onDeleteItem, onAddItem }) {
-  const [drafts, setDrafts] = useState({ daily: "", weekly: "" });
-
-  const setDraft = (category, value) => {
-    setDrafts((current) => ({ ...current, [category]: value }));
-  };
-
-  const submit = (event, category) => {
+  const submit = (event) => {
     event.preventDefault();
-    onAddItem(category, drafts[category]);
-    setDraft(category, "");
+    onAddItem(draft);
+    setDraft("");
   };
+
+  const doneCount = items.filter((item) => item.done).length;
 
   return (
-    <div className="checklist-grid">
-      {CATEGORIES.map((category) => {
-        const items = checklists[category.key] || [];
-        const doneCount = items.filter((item) => item.done).length;
+    <article className="card checklist-page">
+      <div className="card-header">
+        <h3>{title}</h3>
+        <span>
+          {doneCount}/{items.length}
+        </span>
+      </div>
 
-        return (
-          <article key={category.key} className="card">
-            <div className="card-header">
-              <h3>{category.label}</h3>
-              <span>
-                {doneCount}/{items.length}
-              </span>
-            </div>
+      {description ? <p className="muted">{description}</p> : null}
 
-            <ul className="task-list">
-              {items.map((item) => (
-                <li key={item.id}>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={item.done}
-                      onChange={() => onToggleItem(category.key, item.id)}
-                    />
-                    <span className={item.done ? "done" : ""}>{item.title}</span>
-                  </label>
-                  <button type="button" className="icon-btn" onClick={() => onDeleteItem(category.key, item.id)}>
-                    Remove
-                  </button>
-                </li>
-              ))}
-            </ul>
+      <ul className="task-list">
+        {items.map((item) => (
+          <li key={item.id}>
+            <label>
+              <input type="checkbox" checked={item.done} onChange={() => onToggleItem(item.id)} />
+              <span className={item.done ? "done" : ""}>{item.title}</span>
+            </label>
+            <button type="button" className="icon-btn" onClick={() => onDeleteItem(item.id)}>
+              Remove
+            </button>
+          </li>
+        ))}
+      </ul>
 
-            <form onSubmit={(event) => submit(event, category.key)} className="add-row">
-              <input
-                type="text"
-                placeholder="Add an item"
-                value={drafts[category.key]}
-                onChange={(event) => setDraft(category.key, event.target.value)}
-              />
-              <button type="submit">Add</button>
-            </form>
-          </article>
-        );
-      })}
-    </div>
+      <form onSubmit={submit} className="add-row">
+        <input type="text" placeholder="Add an item" value={draft} onChange={(event) => setDraft(event.target.value)} />
+        <button type="submit">Add</button>
+      </form>
+    </article>
   );
 }
