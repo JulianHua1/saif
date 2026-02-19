@@ -1,10 +1,8 @@
-import { useEffect, useMemo, useReducer, useState } from "react";
+import { useEffect, useReducer, useState } from "react";
 import { DashboardView } from "./components/DashboardView";
+import { ChecklistsView } from "./components/ChecklistsView";
 import { QuranView } from "./components/QuranView";
-import { JournalView } from "./components/JournalView";
-import { ChecklistView } from "./components/ChecklistView";
 import { PrayerTimesView } from "./components/PrayerTimesView";
-import { NotificationsView } from "./components/NotificationsView";
 import { QuotesView } from "./components/QuotesView";
 import { SettingsView } from "./components/SettingsView";
 import {
@@ -22,11 +20,9 @@ import {
   PRAYER_EVENTS,
   CALCULATION_METHOD_OPTIONS,
   MADHAB_OPTIONS,
-  DEFAULT_LOCATION,
   buildPrayerCacheKey,
   buildPrayerMonthSchedule,
   shiftMonth,
-  getMonthLabel,
   getEventTimeline,
   findNextPrayerEvent,
   normalizeReminderMap,
@@ -73,12 +69,7 @@ const EVENING_ACHIEVEMENTS = [
   "Prayed the Witr prayer",
   "Made Qunut/Dua for the Muslim Ummah in a prayer",
   "Pondered about my Death and the Day of Judgement",
-  "Read Surah Mulk before going to sleep",
-  "Went to sleep in a state of Wudu",
-  "Went to sleep without ill feelings towards any Muslim",
-  "Wrote down/updated my will",
-  "Prayed a minimum of 2 rakah Tahajjud prayer",
-  "Asked Allah for Jannah and refuge from Jahannam (x3)"
+  "Read Surah Mulk before going to sleep"
 ];
 
 const WEEKLY_ACHIEVEMENTS = [
@@ -86,54 +77,30 @@ const WEEKLY_ACHIEVEMENTS = [
   "Fed/clothed one needy person or gave a gift",
   "Took extra care to maintain myself",
   "Memorized 1 hadeeth of Rasulullah (SAWS)",
-  "Made Istikharah about an important matter"
+  "Made Istikharah about an important matter",
+  "Read Surah Kahf on Friday",
+  "Pondered 5-10 minutes about the khutbah and its message",
+  "Attempted to join the hearts between two Muslims",
+  "Sent abundant salawat on the Prophet (SAWS)",
+  "Made dua in the final hour before Maghrib on Friday",
+  "Visited or called family ties with good character",
+  "Gave a dedicated weekly act of charity"
 ];
 
-const FRIDAY_ACHIEVEMENTS = [
-  "Read Surah Kahf",
-  "Fed/clothed one needy person or gave a gift",
-  "Took extra care to maintain myself",
-  "Memorized 1 hadeeth of Rasulullah (SAWS)",
-  "Pondered 5-10 minutes about the khutbah & its message",
-  "Attempted to join the hearts between 2 Muslims"
+const MORNING_ACHIEVEMENTS = [
+  "Ate suhoor (Pre-dawn meal)",
+  "Fajr on time",
+  "Made my morning dhikr"
 ];
 
 const NAV_ITEMS = [
-  { id: "dashboard", label: "Dashboard" },
-  { id: "prayer", label: "Prayer Times" },
-  { id: "quran", label: "Quran Reading" },
-  { id: "journal", label: "Journal" },
-  { id: "dailyChecklist", label: "Day Checklist" },
-  { id: "eveningChecklist", label: "Evening Checklist" },
-  { id: "weeklyChecklist", label: "Weekly Checklist" },
-  { id: "fridayChecklist", label: "Friday Checklist" },
-  { id: "notifications", label: "Notifications" },
-  { id: "quotes", label: "Motivation" },
-  { id: "settings", label: "Settings" }
+  { id: "dashboard", label: "Today Dashboard", icon: "solar:home-smile-linear" },
+  { id: "monthly", label: "Monthly View", icon: "solar:calendar-date-linear" },
+  { id: "quran", label: "Qur'an Reading", icon: "solar:book-bookmark-linear" },
+  { id: "checklists", label: "Daily Deeds", icon: "solar:checklist-minimalistic-linear" },
+  { id: "quotes", label: "Wisdom Library", icon: "solar:library-linear" },
+  { id: "settings", label: "Settings", icon: "solar:settings-linear" }
 ];
-
-const CHECKLIST_PAGE_META = {
-  dailyChecklist: {
-    category: "daily",
-    title: "Achievements During the Day",
-    description: "These reset daily."
-  },
-  eveningChecklist: {
-    category: "evening",
-    title: "Specific for the Evening",
-    description: "These also reset daily."
-  },
-  weeklyChecklist: {
-    category: "weekly",
-    title: "Weekly Achievements",
-    description: "These reset weekly."
-  },
-  fridayChecklist: {
-    category: "friday",
-    title: "Friday Achievements",
-    description: "These reset weekly."
-  }
-};
 
 function createId() {
   if (globalThis.crypto && typeof globalThis.crypto.randomUUID === "function") {
@@ -153,10 +120,10 @@ function createChecklistItems(titles, prefix) {
 
 function makeDefaultChecklists() {
   return {
+    morning: createChecklistItems(MORNING_ACHIEVEMENTS, "morning"),
     daily: createChecklistItems(DAILY_ACHIEVEMENTS, "daily"),
     evening: createChecklistItems(EVENING_ACHIEVEMENTS, "evening"),
-    weekly: createChecklistItems(WEEKLY_ACHIEVEMENTS, "weekly"),
-    friday: createChecklistItems(FRIDAY_ACHIEVEMENTS, "friday")
+    weekly: createChecklistItems(WEEKLY_ACHIEVEMENTS, "weekly")
   };
 }
 
@@ -187,7 +154,7 @@ function makeDefaultState(now = new Date()) {
   };
 }
 
-function sanitizeChecklistCategory(input, fallback, prefix) {
+function sanitizeChecklistCategory(input, fallback, prefix, strictLength = false) {
   if (!Array.isArray(input) || input.length === 0) return fallback;
 
   const cleaned = input
@@ -198,6 +165,7 @@ function sanitizeChecklistCategory(input, fallback, prefix) {
     }))
     .filter((item) => item.title.length > 0);
 
+  if (strictLength && cleaned.length !== fallback.length) return fallback;
   return cleaned.length > 0 ? cleaned : fallback;
 }
 
@@ -364,10 +332,10 @@ function sanitizeState(raw) {
 
   const defaultChecklists = makeDefaultChecklists();
   const checklists = {
-    daily: sanitizeChecklistCategory(raw.checklists?.daily, defaultChecklists.daily, "daily"),
-    evening: sanitizeChecklistCategory(raw.checklists?.evening, defaultChecklists.evening, "evening"),
-    weekly: sanitizeChecklistCategory(raw.checklists?.weekly, defaultChecklists.weekly, "weekly"),
-    friday: sanitizeChecklistCategory(raw.checklists?.friday, defaultChecklists.friday, "friday")
+    morning: sanitizeChecklistCategory(raw.checklists?.morning, defaultChecklists.morning, "morning", true),
+    daily: sanitizeChecklistCategory(raw.checklists?.daily, defaultChecklists.daily, "daily", true),
+    evening: sanitizeChecklistCategory(raw.checklists?.evening, defaultChecklists.evening, "evening", true),
+    weekly: sanitizeChecklistCategory(raw.checklists?.weekly, defaultChecklists.weekly, "weekly", true)
   };
 
   const selectedYear = Number(raw.prayer?.selectedYear) || monthStamp.year;
@@ -406,6 +374,7 @@ function runChecklistHousekeeping(state, now) {
       ...next,
       checklists: {
         ...next.checklists,
+        morning: next.checklists.morning.map((item) => ({ ...item, done: false })),
         daily: next.checklists.daily.map((item) => ({ ...item, done: false })),
         evening: next.checklists.evening.map((item) => ({ ...item, done: false }))
       },
@@ -422,8 +391,7 @@ function runChecklistHousekeeping(state, now) {
       ...next,
       checklists: {
         ...next.checklists,
-        weekly: next.checklists.weekly.map((item) => ({ ...item, done: false })),
-        friday: next.checklists.friday.map((item) => ({ ...item, done: false }))
+        weekly: next.checklists.weekly.map((item) => ({ ...item, done: false }))
       },
       checklistMeta: {
         ...next.checklistMeta,
@@ -791,6 +759,39 @@ function reducer(state, action) {
   }
 }
 
+function formatHijriDateLabel(value, timeZone) {
+  try {
+    const text = new Intl.DateTimeFormat("en-US-u-ca-islamic", {
+      timeZone,
+      day: "numeric",
+      month: "long",
+      year: "numeric"
+    }).format(value);
+
+    return text.replace(",", "").replace("AH", "").trim();
+  } catch {
+    return "";
+  }
+}
+
+function compactEventLabel(event) {
+  if (!event?.label) return "";
+  if (event.key === "maghrib") return "Iftar";
+  return event.label.replace(" (Iftar)", "");
+}
+
+function formatIslamicYear(value, timeZone) {
+  try {
+    const parts = new Intl.DateTimeFormat("en-US-u-ca-islamic", {
+      timeZone,
+      year: "numeric"
+    }).formatToParts(value);
+    return parts.find((part) => part.type === "year")?.value || "";
+  } catch {
+    return "";
+  }
+}
+
 export default function App() {
   const [activeSection, setActiveSection] = useState("dashboard");
   const [nowMs, setNowMs] = useState(Date.now());
@@ -880,20 +881,7 @@ export default function App() {
   const countdownText = nextPrayerEvent ? formatCountdown(nextPrayerEvent.timeISO, nowMs) : "--:--:--";
   const todayTimeline = getEventTimeline(todayPrayerEntry);
   const monthSchedule = selectedMonthEntry?.days || [];
-  const monthLabel = getMonthLabel(state.prayer.selectedYear, state.prayer.selectedMonth, state.settings.location.timeZone);
   const dailyQuote = quoteOfTheDay(todayDayKey);
-
-  const totals = useMemo(() => {
-    const totalSeconds = state.sessions.reduce((sum, session) => sum + session.durationSeconds, 0);
-    const totalMinutes = Math.round(totalSeconds / 60);
-    const totalPages = state.sessions.reduce((sum, session) => sum + session.pagesRead, 0);
-
-    return {
-      totalSeconds,
-      totalMinutes,
-      totalPages
-    };
-  }, [state.sessions]);
 
   const statusLine =
     state.sessions.length === 0
@@ -910,32 +898,6 @@ export default function App() {
         endedAt
       }
     });
-  };
-
-  const addJournalEntry = ({ intention, notes, createdAt }) => {
-    dispatch({
-      type: "ADD_JOURNAL_ENTRY",
-      payload: {
-        id: createId(),
-        intention,
-        notes,
-        createdAt
-      }
-    });
-  };
-
-  const requestNotificationPermission = async () => {
-    if (typeof Notification === "undefined") {
-      setNotificationPermission("unsupported");
-      return;
-    }
-
-    try {
-      const result = await Notification.requestPermission();
-      setNotificationPermission(result);
-    } catch {
-      setNotificationPermission(Notification.permission);
-    }
   };
 
   const showDesktopNotification = (title, message, silent = false) => {
@@ -1051,227 +1013,312 @@ export default function App() {
     notificationPermission
   ]);
 
-  const activeChecklistMeta = CHECKLIST_PAGE_META[activeSection];
+  const hijriLabel = formatHijriDateLabel(nowMs, state.settings.location.timeZone);
+  const dashboardSubtitle = [state.settings.location.name, hijriLabel].filter(Boolean).join(" • ");
+  const nextEventClock = nextPrayerEvent
+    ? new Date(nextPrayerEvent.timeISO).toLocaleTimeString(undefined, {
+        timeZone: state.settings.location.timeZone,
+        hour: "numeric",
+        minute: "2-digit"
+      })
+    : null;
+  const nextEventLabel = compactEventLabel(nextPrayerEvent);
+  const headerCountdownLabel = nextEventLabel ? `Until ${nextEventLabel}` : "Until Prayer";
+  const activePageLabel = NAV_ITEMS.find((item) => item.id === activeSection)?.label || "Ramadan Desk";
+  const isDashboard = activeSection === "dashboard";
+  const isMonthly = activeSection === "monthly";
+  const isQuran = activeSection === "quran";
+  const isChecklists = activeSection === "checklists";
+  const isQuotes = activeSection === "quotes";
+  const isSettings = activeSection === "settings";
+  const isCompactShell = isChecklists || isQuotes || isSettings;
+  const selectedMonthDate = new Date(Date.UTC(state.prayer.selectedYear, state.prayer.selectedMonth - 1, 1, 12, 0, 0));
+  const islamicYear = formatIslamicYear(selectedMonthDate, state.settings.location.timeZone);
+  const calendarBadge = `${islamicYear || "1447"} AH / ${state.prayer.selectedYear} AD`;
+  const contentWrapperClass = isMonthly
+    ? "p-6 md:p-10 max-w-7xl mx-auto space-y-8 relative z-10"
+    : isQuran
+      ? "p-6 md:p-10 max-w-5xl mx-auto space-y-6 relative z-10"
+      : isChecklists
+        ? "p-4 md:p-6 max-w-4xl mx-auto space-y-5 relative z-10"
+      : isQuotes
+        ? "p-4 md:p-6 max-w-6xl mx-auto space-y-5 relative z-10"
+      : isSettings
+        ? "p-4 md:p-6 max-w-2xl mx-auto space-y-6 relative z-10 pb-12"
+      : "p-6 md:p-10 max-w-6xl mx-auto space-y-8 relative z-10";
 
   return (
-    <div className="app-shell">
-      <aside className="sidebar">
-        <div className="brand">
-          <p className="brand-kicker">SAIF</p>
-          <h1>Ramadan Desk Companion</h1>
-          <p>React desktop app. Fast. Local. Private.</p>
+    <div className="flex h-screen overflow-hidden w-full">
+      <aside
+        className={
+          isCompactShell
+            ? "w-64 bg-[#143d34] text-[#e8e6e1] border-r border-[#1f4f44] flex-col justify-between hidden md:flex relative z-20 shadow-xl flex-shrink-0"
+            : "w-64 bg-[#143d34] text-[#e8e6e1] border-r border-[#1f4f44] flex-col justify-between hidden md:flex relative z-20 shadow-xl"
+        }
+      >
+        <div className={isCompactShell ? "p-6 pb-2" : "p-8 pb-4"}>
+          <div className={isCompactShell ? "mb-1" : "mb-2"}>
+            <h1 className={isCompactShell ? "text-xl font-medium tracking-wide serif-font text-[#f0ebe0]" : "text-2xl font-medium tracking-wide serif-font text-[#f0ebe0]"}>
+              Ramadan Desk
+            </h1>
+          </div>
+          <p className="text-xs text-[#a0b5b0] font-light pl-1 opacity-70 tracking-wide font-sans">Focus, Prayer, Peace</p>
         </div>
 
-        <nav>
+        <nav className={isCompactShell ? "flex-1 px-3 py-4 space-y-1 overflow-y-auto" : "flex-1 px-4 py-6 space-y-1.5 overflow-y-auto"}>
           {NAV_ITEMS.map((item) => (
-            <button
+            <a
               key={item.id}
-              type="button"
-              className={item.id === activeSection ? "nav-btn active" : "nav-btn"}
-              onClick={() => setActiveSection(item.id)}
+              href="#"
+              onClick={(event) => {
+                event.preventDefault();
+                setActiveSection(item.id);
+              }}
+              className={
+                item.id === activeSection
+                  ? isCompactShell
+                    ? "flex items-center gap-3 px-3 py-2.5 bg-[#1e4d42] text-[#d4af37] border border-[#265c50] rounded-lg shadow-sm group transition-all"
+                    : "flex items-center gap-3 px-4 py-3 bg-[#1e4d42] text-[#d4af37] border border-[#265c50] rounded-xl shadow-sm group transition-all"
+                  : isCompactShell
+                    ? "flex items-center gap-3 px-3 py-2.5 text-[#b0c4c0] hover:text-[#f0ebe0] hover:bg-[#1e4d42]/50 rounded-lg transition-colors"
+                    : "flex items-center gap-3 px-4 py-3 text-[#b0c4c0] hover:text-[#f0ebe0] hover:bg-[#1e4d42]/50 rounded-xl transition-colors"
+              }
             >
-              {item.label}
-            </button>
+              <iconify-icon icon={item.icon} width={isCompactShell ? "18" : "20"} stroke-width="1.5" />
+              <span
+                className={
+                  item.id === activeSection
+                    ? isCompactShell
+                      ? `text-xs font-medium${item.id === "quran" ? " tracking-wide" : ""}`
+                      : "text-sm font-medium tracking-wide"
+                    : isCompactShell
+                      ? `text-xs font-medium${item.id === "quran" ? " tracking-wide" : ""}`
+                      : "text-sm font-medium"
+                }
+              >
+                {item.label}
+              </span>
+            </a>
           ))}
         </nav>
+
+        <div className={isCompactShell ? "p-5 border-t border-[#1f4f44] bg-[#11352d]" : "p-6 border-t border-[#1f4f44] bg-[#11352d]"}>
+          <div className={isCompactShell ? "flex items-center gap-2 mb-1.5 text-[#8aa39e]" : "flex items-center gap-2 mb-2 text-[#8aa39e]"}>
+            <iconify-icon icon="solar:map-point-linear" width={isCompactShell ? "12" : "14"} />
+            <span className={isCompactShell ? "text-[10px] font-medium uppercase tracking-widest" : "text-xs font-medium uppercase tracking-widest"}>
+              {state.settings.location.name.toUpperCase()}
+            </span>
+          </div>
+          <div className={isCompactShell ? "space-y-0.5" : "space-y-1"}>
+            <p className={isCompactShell ? "text-[10px] text-[#a0b5b0] opacity-80" : "text-xs text-[#a0b5b0] opacity-80"}>
+              {nextEventClock && nextEventLabel ? `Next: ${nextEventLabel} ${nextEventClock}` : "Prayer schedule unavailable"}
+            </p>
+            <p className={isCompactShell ? "text-xs serif-font text-[#d4af37] italic tracking-wide" : "text-sm serif-font text-[#d4af37] italic tracking-wide"}>
+              {countdownText}
+            </p>
+          </div>
+        </div>
       </aside>
 
-      <main className="main-content">
-        <header className="top-bar">
-          <div>
-            <h2>{NAV_ITEMS.find((item) => item.id === activeSection)?.label}</h2>
-            <p>{statusLine}</p>
+      <main className="flex-1 overflow-y-auto relative bg-[#f2f0e9]">
+        <div
+          className="absolute inset-0 z-0 opacity-[0.03] pointer-events-none"
+          style={{ backgroundImage: "radial-gradient(#143d34 1px, transparent 1px)", backgroundSize: "24px 24px" }}
+        />
+        {isCompactShell && (
+          <div className="absolute top-20 right-0 z-0 opacity-[0.05] pointer-events-none transform translate-x-10 text-[#143d34]">
+            <iconify-icon icon="solar:moon-bold" width="500" />
           </div>
+        )}
 
-          <div className="top-summary">
+        <header
+          className={
+            isCompactShell
+              ? "sticky top-0 z-30 flex items-center justify-between px-6 py-3 bg-[#f2f0e9]/95 backdrop-blur-sm border-b border-[#e6e2d6]"
+              : "sticky top-0 z-30 flex items-center justify-between px-6 py-5 md:px-10 bg-[#f2f0e9]/95 backdrop-blur-sm border-b border-[#e6e2d6]"
+          }
+        >
+          {isDashboard && (
+            <>
+              <div>
+                <h2 className="text-xl md:text-2xl font-normal text-[#143d34] serif-font">Ahlan wa Sahlan</h2>
+                <div className="flex items-center gap-2 text-stone-500 text-xs mt-1 font-medium">
+                  <iconify-icon icon="solar:globe-linear" width="12" />
+                  <span>{dashboardSubtitle}</span>
+                </div>
+              </div>
+
+              <div className="hidden md:flex items-center gap-3 px-4 py-2 bg-[#e8e6e1] rounded-full border border-[#dcd9ce]">
+                <div className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)] animate-pulse" />
+                <span className="text-xs font-semibold uppercase tracking-wider text-stone-600">{headerCountdownLabel}</span>
+              </div>
+            </>
+          )}
+
+          {isMonthly && (
             <div>
-              <strong>{totals.totalMinutes}</strong>
-              <span>minutes</span>
+              <h2 className="text-xl md:text-2xl font-normal text-[#143d34] serif-font">Ramadan Calendar</h2>
+              <div className="flex items-center gap-2 text-stone-500 text-xs mt-1 font-medium">
+                <span className="bg-[#e6e2d6] px-1.5 py-0.5 rounded text-[#143d34]/80">{calendarBadge}</span>
+              </div>
             </div>
+          )}
+
+          {isQuran && (
             <div>
-              <strong>{totals.totalPages}</strong>
-              <span>pages</span>
+              <h2 className="text-xl md:text-2xl font-normal text-[#143d34] serif-font">Qur'an Reading</h2>
+              <div className="flex items-center gap-2 text-stone-500 text-xs mt-1 font-medium">
+                <span className="bg-[#e6e2d6] px-1.5 py-0.5 rounded text-[#143d34]/80">Focus timer, daily graph, and journal</span>
+              </div>
             </div>
+          )}
+
+          {isChecklists && (
             <div>
-              <strong>{state.journal.length}</strong>
-              <span>entries</span>
+              <h2 className="text-lg font-normal text-[#143d34] serif-font">Checklists</h2>
+              <div className="flex items-center gap-2 text-stone-500 text-[10px] mt-0.5 font-medium">
+                <span className="bg-[#e6e2d6] px-1.5 py-0.5 rounded text-[#143d34]/80">Open each section and tick through it</span>
+              </div>
             </div>
-          </div>
+          )}
+
+          {isQuotes && (
+            <div>
+              <h2 className="text-lg font-normal text-[#143d34] serif-font">Quote Library</h2>
+              <div className="flex items-center gap-2 text-stone-500 text-[10px] mt-0.5 font-medium">
+                <span className="bg-[#e6e2d6] px-1.5 py-0.5 rounded text-[#143d34]/80">
+                  Curated reminders for sabr, shukr, discipline, service, and Ramadan virtues.
+                </span>
+              </div>
+            </div>
+          )}
+
+          {isSettings && (
+            <div>
+              <h2 className="text-lg font-normal text-[#143d34] serif-font">Settings</h2>
+              <div className="flex items-center gap-2 text-stone-500 text-[10px] mt-0.5 font-medium">
+                <span className="bg-[#e6e2d6] px-1.5 py-0.5 rounded text-[#143d34]/80">Manage your preferences and notifications</span>
+              </div>
+            </div>
+          )}
+
+          {!isDashboard && !isMonthly && !isQuran && !isChecklists && !isQuotes && !isSettings && (
+            <div>
+              <h2 className="text-xl md:text-2xl font-normal text-[#143d34] serif-font">{activePageLabel}</h2>
+              <div className="flex items-center gap-2 text-stone-500 text-xs mt-1 font-medium">
+                <span>{statusLine}</span>
+              </div>
+            </div>
+          )}
+
+          <button type="button" className="md:hidden text-[#143d34] border-0 bg-transparent p-0" aria-label="Open menu">
+            <iconify-icon icon="solar:hamburger-menu-linear" width="24" />
+          </button>
         </header>
 
-        {activeSection === "dashboard" && (
-          <DashboardView
-            sessions={state.sessions}
-            journal={state.journal}
-            checklists={state.checklists}
-            totals={totals}
-            nextEvent={nextPrayerEvent}
-            countdownText={countdownText}
-            dailyQuote={dailyQuote}
-            lastPrayerRefresh={selectedMonthEntry?.generatedAt}
-            timeZone={state.settings.location.timeZone}
-          />
-        )}
+        <div className={contentWrapperClass}>
+          {activeSection === "dashboard" && (
+            <DashboardView
+              checklists={state.checklists}
+              nextEvent={nextPrayerEvent}
+              countdownText={countdownText}
+              todayTimeline={todayTimeline}
+              nowMs={nowMs}
+              timeZone={state.settings.location.timeZone}
+              onOpenMonthlyView={() => setActiveSection("monthly")}
+              onOpenQuranView={() => setActiveSection("quran")}
+            />
+          )}
 
-        {activeSection === "prayer" && (
-          <PrayerTimesView
-            settings={state.settings}
-            todayTimeline={todayTimeline}
-            nextEvent={nextPrayerEvent}
-            countdownText={countdownText}
-            monthSchedule={monthSchedule}
-            monthLabel={monthLabel}
-            onPrevMonth={() => {
-              const previous = shiftMonth(state.prayer.selectedYear, state.prayer.selectedMonth, -1);
-              dispatch({ type: "SET_SELECTED_MONTH", year: previous.year, month: previous.month });
-            }}
-            onNextMonth={() => {
-              const next = shiftMonth(state.prayer.selectedYear, state.prayer.selectedMonth, 1);
-              dispatch({ type: "SET_SELECTED_MONTH", year: next.year, month: next.month });
-            }}
-            onRefresh={() =>
-              dispatch({
-                type: "ENSURE_MONTH_CACHE",
-                year: state.prayer.selectedYear,
-                month: state.prayer.selectedMonth,
-                force: true,
-                generatedAt: new Date().toISOString()
-              })
-            }
-            lastRefreshedAt={selectedMonthEntry?.generatedAt}
-          />
-        )}
+          {activeSection === "monthly" && (
+            <PrayerTimesView
+              settings={state.settings}
+              selectedYear={state.prayer.selectedYear}
+              selectedMonth={state.prayer.selectedMonth}
+              monthSchedule={monthSchedule}
+              onPrevMonth={() => {
+                const previous = shiftMonth(state.prayer.selectedYear, state.prayer.selectedMonth, -1);
+                dispatch({ type: "SET_SELECTED_MONTH", year: previous.year, month: previous.month });
+              }}
+              onNextMonth={() => {
+                const next = shiftMonth(state.prayer.selectedYear, state.prayer.selectedMonth, 1);
+                dispatch({ type: "SET_SELECTED_MONTH", year: next.year, month: next.month });
+              }}
+              onGoToCurrentMonth={() => {
+                dispatch({
+                  type: "SET_SELECTED_MONTH",
+                  year: nowMonth.year,
+                  month: nowMonth.month
+                });
+              }}
+              onRefresh={() =>
+                dispatch({
+                  type: "ENSURE_MONTH_CACHE",
+                  year: state.prayer.selectedYear,
+                  month: state.prayer.selectedMonth,
+                  force: true,
+                  generatedAt: new Date().toISOString()
+                })
+              }
+              lastRefreshedAt={selectedMonthEntry?.generatedAt}
+            />
+          )}
 
-        {activeSection === "quran" && <QuranView sessions={state.sessions} onSaveSession={saveSession} />}
+          {activeSection === "quran" && <QuranView sessions={state.sessions} onSaveSession={saveSession} />}
 
-        {activeSection === "journal" && <JournalView journal={state.journal} onAddEntry={addJournalEntry} />}
+          {activeSection === "checklists" && (
+            <ChecklistsView
+              checklists={state.checklists}
+              onToggleItem={(category, itemId) =>
+                dispatch({
+                  type: "TOGGLE_CHECKLIST_ITEM",
+                  category,
+                  itemId
+                })
+              }
+            />
+          )}
 
-        {activeChecklistMeta && (
-          <ChecklistView
-            title={activeChecklistMeta.title}
-            description={activeChecklistMeta.description}
-            items={state.checklists[activeChecklistMeta.category]}
-            onToggleItem={(itemId) =>
-              dispatch({
-                type: "TOGGLE_CHECKLIST_ITEM",
-                category: activeChecklistMeta.category,
-                itemId
-              })
-            }
-            onDeleteItem={(itemId) =>
-              dispatch({
-                type: "DELETE_CHECKLIST_ITEM",
-                category: activeChecklistMeta.category,
-                itemId
-              })
-            }
-            onAddItem={(title) =>
-              dispatch({
-                type: "ADD_CHECKLIST_ITEM",
-                category: activeChecklistMeta.category,
-                title
-              })
-            }
-          />
-        )}
+          {activeSection === "quotes" && (
+            <QuotesView
+              featuredQuote={dailyQuote}
+              quotes={QUOTES}
+              favoriteQuoteIds={state.favoriteQuoteIds}
+              onToggleFavorite={(quoteId) =>
+                dispatch({
+                  type: "TOGGLE_FAVORITE_QUOTE",
+                  quoteId
+                })
+              }
+            />
+          )}
 
-        {activeSection === "notifications" && (
-          <NotificationsView
-            settings={state.settings}
-            notificationPermission={notificationPermission}
-            onRequestPermission={requestNotificationPermission}
-            onSetReminderOffsets={(eventKey, offsets) =>
-              dispatch({
-                type: "SET_REMINDER_OFFSETS",
-                eventKey,
-                offsets
-              })
-            }
-            onSetQuoteNotificationEnabled={(enabled) =>
-              dispatch({
-                type: "SET_QUOTE_NOTIFICATION_ENABLED",
-                enabled
-              })
-            }
-            onSetQuoteNotificationTime={(time) =>
-              dispatch({
-                type: "SET_QUOTE_NOTIFICATION_TIME",
-                time
-              })
-            }
-            onSetTeachingModeEnabled={(enabled) =>
-              dispatch({
-                type: "SET_TEACHING_MODE_ENABLED",
-                enabled
-              })
-            }
-            onAddTeachingRange={(dayKey) =>
-              dispatch({
-                type: "ADD_TEACHING_RANGE",
-                dayKey
-              })
-            }
-            onUpdateTeachingRange={(dayKey, rangeId, field, value) =>
-              dispatch({
-                type: "UPDATE_TEACHING_RANGE",
-                dayKey,
-                rangeId,
-                field,
-                value
-              })
-            }
-            onRemoveTeachingRange={(dayKey, rangeId) =>
-              dispatch({
-                type: "REMOVE_TEACHING_RANGE",
-                dayKey,
-                rangeId
-              })
-            }
-            activeReminders={state.notifications.activeReminders}
-            onSnoozeReminder={(reminderId, minutes) =>
-              dispatch({
-                type: "SNOOZE_REMINDER",
-                reminderId,
-                minutes,
-                now: nowMs
-              })
-            }
-            onDismissReminder={(reminderId) =>
-              dispatch({
-                type: "DISMISS_REMINDER",
-                reminderId
-              })
-            }
-          />
-        )}
+          {activeSection === "settings" && (
+            <SettingsView
+              settings={state.settings}
+              methodOptions={CALCULATION_METHOD_OPTIONS}
+              madhabOptions={MADHAB_OPTIONS}
+              notificationPermission={notificationPermission}
+              onRequestNotificationAccess={async () => {
+                if (typeof Notification === "undefined") return "unsupported";
 
-        {activeSection === "quotes" && (
-          <QuotesView
-            featuredQuote={dailyQuote}
-            quotes={QUOTES}
-            favoriteQuoteIds={state.favoriteQuoteIds}
-            onToggleFavorite={(quoteId) =>
-              dispatch({
-                type: "TOGGLE_FAVORITE_QUOTE",
-                quoteId
-              })
-            }
-          />
-        )}
-
-        {activeSection === "settings" && (
-          <SettingsView
-            settings={state.settings}
-            methodOptions={CALCULATION_METHOD_OPTIONS}
-            madhabOptions={MADHAB_OPTIONS}
-            onSaveSettings={(nextSettings) =>
-              dispatch({
-                type: "SAVE_SETTINGS",
-                settings: nextSettings
-              })
-            }
-          />
-        )}
+                try {
+                  const permission = await Notification.requestPermission();
+                  setNotificationPermission(permission);
+                  return permission;
+                } catch {
+                  return notificationPermission;
+                }
+              }}
+              onSaveSettings={(nextSettings) =>
+                dispatch({
+                  type: "SAVE_SETTINGS",
+                  settings: nextSettings
+                })
+              }
+            />
+          )}
+        </div>
       </main>
     </div>
   );
